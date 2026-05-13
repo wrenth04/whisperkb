@@ -1,0 +1,4 @@
+<full-backup-content xmlns:android="http://schemas.android.com/apk/res/android">
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+</full-backup-content>

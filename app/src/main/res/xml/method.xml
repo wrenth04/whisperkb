@@ -1,0 +1,8 @@
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="whisperkb.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+    <subtype
+        android:label="@string/ime_subtype_label"
+        android:imeSubtypeMode="voice"
+        android:imeSubtypeLocale="en_US" />
+</input-method>

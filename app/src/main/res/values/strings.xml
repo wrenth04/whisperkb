@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">whisperkb</string>
+    <string name="quick_record_tile_label">Record</string>
+    <string name="accessibility_service_description">Allows whisperkb to insert transcription text into focused fields.</string>
+    <string name="accessibility_service_summary">whisperkb transcription input helper</string>
+    <string name="ime_subtype_label">whisperkb Voice</string>
+    <string name="widget_start">Start recording</string>
+    <string name="widget_stop">Stop recording</string>
+    <string name="tab_transcriptions">Transcriptions</string>
+    <string name="tab_profiles">Profiles</string>
+    <string name="tab_settings">Settings</string>
+</resources>

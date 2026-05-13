@@ -1,0 +1,29 @@
+name: Validate reconstruction
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify APK artifact exists
+        run: test -f whisperian.apk
+
+      - name: Test APK archive integrity
+        run: unzip -t whisperian.apk
+
+      - name: Verify reconstruction outputs
+        run: |
+          test -f reconstruction/SUMMARY.md
+          test -f reconstruction/EVIDENCE.md
+          test -f reconstruction/EXFIL_FINDINGS.md
+          test -f reconstruction/EXFIL_FINDINGS_DEEP.md
+          test -f reconstruction/GAP_ANALYSIS.md
+          test -f reconstruction/decompiled/classes.dex.strings.txt
+          test -f reconstruction/manifest/AndroidManifest.base.xml
+          test -f reconstruction/native/NATIVE_INDEX.md
