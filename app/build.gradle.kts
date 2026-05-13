@@ -8,6 +8,8 @@ android {
     namespace = "app.whisperkb"
     compileSdk = 35
 
+    // Keep target aligned with the installed SDK on this machine.
+
     defaultConfig {
         applicationId = "app.whisperkb"
         minSdk = 26
@@ -61,5 +63,6 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation("com.bihe0832.android:lib-sherpa-onnx:8.5.1")
     ksp("androidx.room:room-compiler:2.6.1")
 }
