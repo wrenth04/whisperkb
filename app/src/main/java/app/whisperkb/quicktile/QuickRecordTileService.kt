@@ -12,10 +12,10 @@ class QuickRecordTileService : TileService() {
     override fun onClick() {
         super.onClick()
         val snapshot = AppStateStore.snapshot(this)
-        val action = if (snapshot.state == ServiceState.RECORDING || snapshot.state == ServiceState.TRANSCRIBING) {
-            TranscriptionService.ACTION_STOP_RECORDING
-        } else {
-            TranscriptionService.ACTION_START_RECORDING
+        val action = when (snapshot.state) {
+            ServiceState.RECORDING, ServiceState.TRANSCRIBING -> TranscriptionService.ACTION_STOP_RECORDING
+            ServiceState.ERROR -> TranscriptionService.ACTION_RETRY
+            else -> TranscriptionService.ACTION_START_RECORDING
         }
         val intent = Intent(this, TranscriptionService::class.java).apply { this.action = action }
         if (action == TranscriptionService.ACTION_START_RECORDING) {
@@ -36,13 +36,20 @@ class QuickRecordTileService : TileService() {
         qsTile?.state = when (snapshot.state) {
             ServiceState.RECORDING, ServiceState.TRANSCRIBING -> Tile.STATE_ACTIVE
             ServiceState.ERROR -> Tile.STATE_UNAVAILABLE
+            ServiceState.COMPLETED -> Tile.STATE_ACTIVE
             else -> Tile.STATE_INACTIVE
         }
         qsTile?.label = when (snapshot.state) {
             ServiceState.RECORDING -> "Stop whisperkb"
             ServiceState.TRANSCRIBING -> "Transcribing"
-            ServiceState.ERROR -> "whisperkb error"
+            ServiceState.ERROR -> "Retry whisperkb"
+            ServiceState.COMPLETED -> "Copy whisperkb"
             else -> "Record"
+        }
+        qsTile?.subtitle = when (snapshot.state) {
+            ServiceState.COMPLETED -> snapshot.transcript?.take(24)
+            ServiceState.ERROR -> snapshot.error
+            else -> null
         }
         qsTile?.updateTile()
     }

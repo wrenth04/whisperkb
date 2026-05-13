@@ -31,19 +31,26 @@ class WhisperkbRecorderWidgetReceiver : AppWidgetProvider() {
         val snapshot = AppStateStore.snapshot(context)
         val views = RemoteViews(context.packageName, R.layout.whisperkb_recorder_widget)
         views.setTextViewText(R.id.widget_status, labelFor(snapshot.state, snapshot.error))
-        views.setOnClickPendingIntent(R.id.widget_root, actionPendingIntent(context, when (snapshot.state) {
-            ServiceState.RECORDING, ServiceState.TRANSCRIBING -> RecorderWidgetActionReceiver.ACTION_STOP
-            ServiceState.ERROR -> RecorderWidgetActionReceiver.ACTION_RETRY
-            else -> RecorderWidgetActionReceiver.ACTION_START
-        }))
+        views.setTextViewText(R.id.widget_action_start, "Start")
+        views.setTextViewText(R.id.widget_action_stop, "Stop")
+        views.setTextViewText(R.id.widget_action_retry, "Retry")
+        views.setTextViewText(R.id.widget_action_cancel, "Cancel")
+        views.setTextViewText(R.id.widget_action_copy, "Copy")
+        views.setOnClickPendingIntent(R.id.widget_root, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_START))
+        views.setOnClickPendingIntent(R.id.widget_action_start, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_START))
+        views.setOnClickPendingIntent(R.id.widget_action_stop, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_STOP))
+        views.setOnClickPendingIntent(R.id.widget_action_retry, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_RETRY))
+        views.setOnClickPendingIntent(R.id.widget_action_cancel, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_CANCEL))
+        views.setOnClickPendingIntent(R.id.widget_action_copy, actionPendingIntent(context, RecorderWidgetActionReceiver.ACTION_COPY))
         return views
     }
 
     private fun labelFor(state: ServiceState, error: String?): String = when (state) {
-        ServiceState.RECORDING -> "Stop recording"
+        ServiceState.RECORDING -> "Recording"
         ServiceState.TRANSCRIBING -> "Transcribing"
-        ServiceState.ERROR -> error ?: "Retry"
-        else -> "Start recording"
+        ServiceState.ERROR -> error ?: "Error"
+        ServiceState.COMPLETED -> "Ready"
+        ServiceState.IDLE -> "Idle"
     }
 
     private fun actionPendingIntent(context: Context, action: String): PendingIntent {

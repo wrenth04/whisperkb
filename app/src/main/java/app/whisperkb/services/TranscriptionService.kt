@@ -48,6 +48,7 @@ class TranscriptionService : Service() {
             ACTION_CANCEL -> cancelRecording()
             ACTION_COPY_TEXT -> copyLastTranscript()
             ACTION_RETRY -> retryLastRecording()
+            ACTION_TRANSCRIBE_SHARED_MEDIA -> transcribeSharedMedia(intent)
             ACTION_TRANSCRIPTION_RESULT -> applyTranscriptionResult(intent)
             ACTION_PAUSE,
             ACTION_RESUME,
@@ -105,7 +106,6 @@ class TranscriptionService : Service() {
             return
         }
 
-        val recorder = recorder
         releaseRecorder()
         transcribing = true
         AppStateStore.update(this, state = ServiceState.TRANSCRIBING, error = null, audioPath = file.absolutePath)
@@ -172,9 +172,27 @@ class TranscriptionService : Service() {
         val file = recordingFile
         if (file != null && file.exists()) {
             stopRecordingAndTranscribe()
-        } else {
-            startRecording()
+            return
         }
+
+        val cachedTranscript = lastTranscript ?: AppStateStore.snapshot(this).transcript
+        if (!cachedTranscript.isNullOrBlank()) {
+            AppStateStore.update(this, state = ServiceState.COMPLETED, transcript = cachedTranscript, error = null)
+            startForeground(NOTIFICATION_ID, buildNotification("Transcription ready", allowStop = false, allowCancel = false, allowRetry = true, allowCopy = true))
+            return
+        }
+
+        startRecording()
+    }
+
+    private fun transcribeSharedMedia(intent: Intent?) {
+        val path = intent?.getStringExtra(EXTRA_AUDIO_PATH)
+        if (path.isNullOrBlank()) {
+            AppStateStore.update(this, state = ServiceState.ERROR, error = "Shared media path is missing")
+            return
+        }
+        recordingFile = File(path)
+        stopRecordingAndTranscribe()
     }
 
     private fun copyLastTranscript() {
@@ -292,6 +310,8 @@ class TranscriptionService : Service() {
         const val ACTION_STOP_RECORDING = "whisperkb.STOP_RECORDING"
         const val ACTION_STOP_RECORDING_LONG_PRESS_TO_TALK = "whisperkb.STOP_RECORDING_LONG_PRESS_TO_TALK"
         const val ACTION_TRANSCRIPTION_RESULT = "whisperkb.TRANSCRIPTION_RESULT"
+        const val ACTION_TRANSCRIBE_SHARED_MEDIA = "whisperkb.TRANSCRIBE_SHARED_MEDIA"
+        const val EXTRA_AUDIO_PATH = "extra_audio_path"
         const val EXTRA_TRANSCRIPT = "extra_transcript"
         const val EXTRA_ERROR = "extra_error"
         private const val NOTIFICATION_ID = 1001

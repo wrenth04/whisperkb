@@ -12,6 +12,8 @@ class RecorderWidgetActionReceiver : BroadcastReceiver() {
             ACTION_START -> TranscriptionService.ACTION_START_RECORDING
             ACTION_STOP -> TranscriptionService.ACTION_STOP_RECORDING
             ACTION_RETRY -> TranscriptionService.ACTION_RETRY
+            ACTION_CANCEL -> TranscriptionService.ACTION_CANCEL
+            ACTION_COPY -> TranscriptionService.ACTION_COPY_TEXT
             else -> return
         }
         val serviceIntent = Intent(context, TranscriptionService::class.java).apply { this.action = action }
@@ -26,5 +28,7 @@ class RecorderWidgetActionReceiver : BroadcastReceiver() {
         const val ACTION_START = "whisperkb.widget.ACTION_START"
         const val ACTION_STOP = "whisperkb.widget.ACTION_STOP"
         const val ACTION_RETRY = "whisperkb.widget.ACTION_RETRY"
+        const val ACTION_CANCEL = "whisperkb.widget.ACTION_CANCEL"
+        const val ACTION_COPY = "whisperkb.widget.ACTION_COPY"
     }
 }

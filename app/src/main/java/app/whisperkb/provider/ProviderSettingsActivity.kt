@@ -1,6 +1,7 @@
 package app.whisperkb.provider
 
 import android.os.Bundle
+import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -23,7 +24,7 @@ class ProviderSettingsActivity : ComponentActivity() {
         }
         val apiKeyInput = EditText(this).apply {
             hint = "API key"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             setText(current?.apiKey.orEmpty())
         }
         val modelInput = EditText(this).apply {
@@ -47,7 +48,7 @@ class ProviderSettingsActivity : ComponentActivity() {
                     LinearLayout(context).apply {
                         orientation = LinearLayout.VERTICAL
                         setPadding(32, 32, 32, 32)
-                        addView(TextView(context).apply { text = "Provider settings" })
+                        addView(TextView(context).apply { text = "whisperkb provider settings" })
                         addView(summaryView)
                         addView(nameInput)
                         addView(endpointInput)

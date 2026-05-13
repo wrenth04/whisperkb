@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -21,6 +22,8 @@ import app.whisperkb.provider.CloudProviderStore
 import app.whisperkb.provider.PromptStore
 import app.whisperkb.provider.ProviderSettingsActivity
 import app.whisperkb.services.TranscriptionService
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     private lateinit var statusView: TextView
@@ -44,6 +47,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermissionsIfNeeded()
+
+        handleSharedInput(intent)
 
         statusView = TextView(this)
         resultView = TextView(this)
@@ -71,13 +76,35 @@ class MainActivity : ComponentActivity() {
                                 startActivity(Intent(context, ProviderSettingsActivity::class.java))
                             }
                         })
+                        addView(Button(context).apply {
+                            text = "Accessibility settings"
+                            setOnClickListener {
+                                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                            }
+                        })
+                        addView(Button(context).apply {
+                            text = "Input method settings"
+                            setOnClickListener {
+                                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                            }
+                        })
+                        addView(TextView(context).apply { text = "Prompt" })
                         addPromptInput(this)
+                        addView(TextView(context).apply { text = "History" })
                         addView(historySearchInput)
                         addView(Button(context).apply {
                             text = "Refresh history"
                             setOnClickListener { refreshState() }
                         })
+                        addView(Button(context).apply {
+                            text = "Clear history"
+                            setOnClickListener {
+                                HistoryStore.clear(this@MainActivity)
+                                refreshState()
+                            }
+                        })
                         addView(historyView)
+                        addView(TextView(context).apply { text = "Recorder" })
                         addView(Button(context).apply {
                             text = "Start recording"
                             setOnClickListener { startServiceAction(TranscriptionService.ACTION_START_RECORDING) }
@@ -99,15 +126,12 @@ class MainActivity : ComponentActivity() {
                             setOnClickListener { startServiceAction(TranscriptionService.ACTION_COPY_TEXT) }
                         })
                         addView(Button(context).apply {
-                            text = "Accessibility settings"
+                            text = "Open shared file"
                             setOnClickListener {
-                                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                            }
-                        })
-                        addView(Button(context).apply {
-                            text = "Input method settings"
-                            setOnClickListener {
-                                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                                startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "audio/*"
+                                })
                             }
                         })
                     }
@@ -152,16 +176,55 @@ class MainActivity : ComponentActivity() {
                 refreshState()
             }
         })
+        parent.addView(Button(this).apply {
+            text = "Reset prompt"
+            setOnClickListener {
+                promptInput.setText(PromptStore.DEFAULT_PROMPT)
+                PromptStore.save(this@MainActivity, PromptStore.DEFAULT_PROMPT)
+                refreshState()
+            }
+        })
     }
 
-    private fun startServiceAction(action: String) {
-        val intent = Intent(this, TranscriptionService::class.java).apply { this.action = action }
-        if (action == TranscriptionService.ACTION_START_RECORDING || action == TranscriptionService.ACTION_RESET_AND_START_RECORDING || action == TranscriptionService.ACTION_START_RECORDING_LONG_PRESS_TO_TALK) {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleSharedInput(intent)
+    }
+
+    private fun startServiceAction(action: String, sharedAudioPath: String? = null) {
+        val intent = Intent(this, TranscriptionService::class.java).apply {
+            this.action = action
+            if (sharedAudioPath != null) {
+                putExtra(TranscriptionService.EXTRA_AUDIO_PATH, sharedAudioPath)
+            }
+        }
+        if (action == TranscriptionService.ACTION_START_RECORDING || action == TranscriptionService.ACTION_RESET_AND_START_RECORDING || action == TranscriptionService.ACTION_START_RECORDING_LONG_PRESS_TO_TALK || action == TranscriptionService.ACTION_TRANSCRIBE_SHARED_MEDIA) {
             ContextCompat.startForegroundService(this, intent)
         } else {
             startService(intent)
         }
         refreshState()
+    }
+
+    private fun handleSharedInput(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
+        val mimeType = intent.type.orEmpty()
+        if (mimeType.startsWith("audio/") || mimeType.startsWith("video/")) {
+            val copied = copySharedMediaToCache(uri, mimeType.substringAfter('/')) ?: return
+            startServiceAction(TranscriptionService.ACTION_TRANSCRIBE_SHARED_MEDIA, copied.absolutePath)
+        }
+    }
+
+    private fun copySharedMediaToCache(uri: Uri, suffix: String): File? {
+        val outDir = File(cacheDir, "shared").apply { mkdirs() }
+        val outFile = File(outDir, "shared_${System.currentTimeMillis()}.$suffix")
+        return runCatching {
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(outFile).use { output -> input.copyTo(output) }
+            } ?: return null
+            outFile
+        }.getOrNull()
     }
 
     private fun requestPermissionsIfNeeded() {

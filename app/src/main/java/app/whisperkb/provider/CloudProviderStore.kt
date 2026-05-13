@@ -1,6 +1,10 @@
 package app.whisperkb.provider
 
 import android.content.Context
+import androidx.room.Room
+import app.whisperkb.data.db.WhisperkbDatabase
+import app.whisperkb.data.db.entity.ProfileEntity
+import kotlinx.coroutines.runBlocking
 
 private const val PREFS_NAME = "whisperkb_provider"
 private const val KEY_NAME = "name"
@@ -19,6 +23,13 @@ object CloudProviderStore {
     }
 
     fun save(context: Context, config: CloudProviderConfig) {
+        runCatching {
+            runBlocking {
+                database(context).dao().insertProfile(
+                    ProfileEntity(name = config.name, provider = config.endpoint, model = config.model)
+                )
+            }
+        }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_NAME, config.name)
@@ -27,4 +38,10 @@ object CloudProviderStore {
             .putString(KEY_MODEL, config.model)
             .apply()
     }
+
+    private fun database(context: Context): WhisperkbDatabase = Room.databaseBuilder(
+        context.applicationContext,
+        WhisperkbDatabase::class.java,
+        WhisperkbDatabase.DATABASE_NAME,
+    ).build()
 }

@@ -1,20 +1,32 @@
 package app.whisperkb.history
 
 import android.content.Context
+import androidx.room.Room
+import app.whisperkb.data.db.WhisperkbDatabase
+import app.whisperkb.data.db.entity.TranscriptionEntity
+import kotlinx.coroutines.runBlocking
 
 private const val PREFS_NAME = "whisperkb_history"
 private const val KEY_NEXT_ID = "next_id"
 private const val KEY_ENTRIES = "entries"
 
 object HistoryStore {
-    fun list(context: Context): List<TranscriptionHistoryEntry> {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val raw = prefs.getString(KEY_ENTRIES, "")
-        if (raw.isNullOrBlank()) return emptyList()
-        return raw.split("")
-            .filter { it.isNotBlank() }
-            .mapNotNull { deserialize(it) }
-            .sortedByDescending { it.createdAt }
+    fun list(context: Context): List<TranscriptionHistoryEntry> = runCatching {
+        runBlocking { database(context).dao().listTranscriptions() }.map {
+            TranscriptionHistoryEntry(
+                id = it.id,
+                createdAt = it.createdAt,
+                rawText = it.text,
+                finalText = it.text,
+                providerName = null,
+                model = null,
+                prompt = null,
+                error = null,
+                audioPath = null,
+            )
+        }
+    }.getOrElse {
+        legacyList(context)
     }
 
     fun add(
@@ -27,10 +39,8 @@ object HistoryStore {
         error: String? = null,
         audioPath: String? = null,
     ): TranscriptionHistoryEntry {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val nextId = prefs.getLong(KEY_NEXT_ID, 1L)
         val entry = TranscriptionHistoryEntry(
-            id = nextId,
+            id = 0,
             createdAt = System.currentTimeMillis(),
             rawText = rawText,
             finalText = finalText,
@@ -40,11 +50,14 @@ object HistoryStore {
             error = error,
             audioPath = audioPath,
         )
-        val updated = list(context).plus(entry)
-        prefs.edit()
-            .putLong(KEY_NEXT_ID, nextId + 1)
-            .putString(KEY_ENTRIES, updated.joinToString("") { serialize(it) })
-            .apply()
+        runCatching {
+            runBlocking {
+                database(context).dao().insertTranscription(
+                    TranscriptionEntity(text = finalText, createdAt = entry.createdAt)
+                )
+            }
+        }
+        legacyAdd(context, entry)
         return entry
     }
 
@@ -60,9 +73,36 @@ object HistoryStore {
     }
 
     fun clear(context: Context) {
+        runCatching { runBlocking { database(context).dao().clearTranscriptions() } }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .remove(KEY_ENTRIES)
+            .apply()
+    }
+
+    private fun database(context: Context): WhisperkbDatabase = Room.databaseBuilder(
+        context.applicationContext,
+        WhisperkbDatabase::class.java,
+        WhisperkbDatabase.DATABASE_NAME,
+    ).build()
+
+    private fun legacyList(context: Context): List<TranscriptionHistoryEntry> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_ENTRIES, "")
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split("")
+            .filter { it.isNotBlank() }
+            .mapNotNull { deserialize(it) }
+            .sortedByDescending { it.createdAt }
+    }
+
+    private fun legacyAdd(context: Context, entry: TranscriptionHistoryEntry) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val nextId = prefs.getLong(KEY_NEXT_ID, 1L)
+        val updated = legacyList(context).plus(entry.copy(id = nextId))
+        prefs.edit()
+            .putLong(KEY_NEXT_ID, nextId + 1)
+            .putString(KEY_ENTRIES, updated.joinToString("") { serialize(it) })
             .apply()
     }
 

@@ -9,6 +9,7 @@ private const val KEY_TRANSCRIPT = "transcript"
 private const val KEY_ERROR = "error"
 private const val KEY_AUDIO_PATH = "audio_path"
 private const val KEY_UPDATED_AT = "updated_at"
+private const val KEY_INSERTED_AT = "inserted_at"
 
 enum class ServiceState {
     IDLE,
@@ -24,6 +25,7 @@ data class ServiceSnapshot(
     val error: String?,
     val audioPath: String?,
     val updatedAt: Long,
+    val insertedAt: Long,
 )
 
 object AppStateStore {
@@ -38,6 +40,7 @@ object AppStateStore {
             error = prefs.getString(KEY_ERROR, null),
             audioPath = prefs.getString(KEY_AUDIO_PATH, null),
             updatedAt = prefs.getLong(KEY_UPDATED_AT, 0L),
+            insertedAt = prefs.getLong(KEY_INSERTED_AT, 0L),
         )
     }
 
@@ -56,6 +59,7 @@ object AppStateStore {
                 if (error != null) putString(KEY_ERROR, error) else remove(KEY_ERROR)
                 if (audioPath != null) putString(KEY_AUDIO_PATH, audioPath) else remove(KEY_AUDIO_PATH)
                 putLong(KEY_UPDATED_AT, System.currentTimeMillis())
+                if (transcript != null) putLong(KEY_INSERTED_AT, 0L)
                 apply()
             }
         context.sendBroadcast(Intent(ACTION_STATE_CHANGED).setPackage(context.packageName))
@@ -63,6 +67,13 @@ object AppStateStore {
 
     fun clearResult(context: Context) {
         update(context, transcript = null, error = null)
+    }
+
+    fun markInserted(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_INSERTED_AT, System.currentTimeMillis())
+            .apply()
     }
 
     fun setIdle(context: Context) {
