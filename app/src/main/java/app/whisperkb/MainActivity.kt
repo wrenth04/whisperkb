@@ -124,7 +124,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        registerReceiver(stateReceiver, IntentFilter(AppStateStore.ACTION_STATE_CHANGED))
+        ContextCompat.registerReceiver(
+            this,
+            stateReceiver,
+            IntentFilter(AppStateStore.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         refreshState()
     }
 

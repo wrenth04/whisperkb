@@ -43,7 +43,12 @@ class WhisperkbInputMethodService : InputMethodService() {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        registerReceiver(stateReceiver, IntentFilter(AppStateStore.ACTION_STATE_CHANGED))
+        ContextCompat.registerReceiver(
+            this,
+            stateReceiver,
+            IntentFilter(AppStateStore.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         refreshState()
         commitPendingTranscript()
     }

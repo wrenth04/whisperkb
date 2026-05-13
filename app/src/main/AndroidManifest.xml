@@ -38,11 +38,8 @@
 
         <service
             android:name=".services.TranscriptionService"
-            android:exported="false" />
-
-        <receiver
-            android:name=".services.TranscriptionService$CopyTextReceiver"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <service
             android:name=".quicktile.QuickRecordTileService"

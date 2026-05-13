@@ -1,5 +1,5 @@
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="whisperkb.MainActivity"
+    android:settingsActivity="app.whisperkb.MainActivity"
     android:supportsSwitchingToNextInputMethod="true">
     <subtype
         android:label="@string/ime_subtype_label"
